@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>To-Do Tracker</title>
+  <style>
+    body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }
+    h1 { margin-bottom: 8px; }
+    form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    input, select, button { padding: 6px 10px; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+    .controls { display: flex; gap: 8px; margin-bottom: 12px; }
+    .done { color: #888; text-decoration: line-through; }
+    button.sm { padding: 3px 8px; font-size: 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>To-Do Tracker</h1>
+
+  <form id="add-form">
+    <input id="name" type="text" placeholder="New to-do..." required style="flex:1">
+    <select id="difficulty">
+      <option>Easy</option>
+      <option>Medium</option>
+      <option>Hard</option>
+    </select>
+    <button type="submit">Add</button>
+  </form>
+
+  <div class="controls">
+    <select id="filter">
+      <option value="All">All difficulties</option>
+      <option value="Easy">Easy</option>
+      <option value="Medium">Medium</option>
+      <option value="Hard">Hard</option>
+    </select>
+    <select id="sort">
+      <option value="">No sort</option>
+      <option value="date">Sort by date</option>
+      <option value="difficulty">Sort by difficulty</option>
+    </select>
+    <button onclick="loadTodos()">Apply</button>
+  </div>
+
+  <table>
+    <thead><tr><th>To-Do</th><th>Difficulty</th><th>Date</th><th>Status</th><th></th></tr></thead>
+    <tbody id="todo-list"></tbody>
+  </table>
+
+  <script>
+    async function loadTodos() {
+      const difficulty = document.getElementById("filter").value;
+      const sort = document.getElementById("sort").value;
+      const params = new URLSearchParams({ difficulty, sort });
+      const res = await fetch(`/todos?${params}`);
+      const todos = await res.json();
+      const tbody = document.getElementById("todo-list");
+      tbody.innerHTML = todos.map(t => `
+        <tr>
+          <td class="${t.status === 'Done' ? 'done' : ''}">${t.name}</td>
+          <td>${t.difficulty}</td>
+          <td>${t.date}</td>
+          <td>${t.status}</td>
+          <td>
+            ${t.status !== 'Done' ? `<button class="sm" onclick="markDone(${t.id})">Done</button>` : ''}
+            <button class="sm" onclick="removeTodo(${t.id})">Remove</button>
+          </td>
+        </tr>`).join("");
+    }
+
+    document.getElementById("add-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      await fetch("/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("name").value,
+          difficulty: document.getElementById("difficulty").value
+        })
+      });
+      document.getElementById("name").value = "";
+      loadTodos();
+    });
+
+    async function markDone(id) {
+      await fetch(`/todos/${id}/done`, { method: "PATCH" });
+      loadTodos();
+    }
+
+    async function removeTodo(id) {
+      await fetch(`/todos/${id}`, { method: "DELETE" });
+      loadTodos();
+    }
+
+    loadTodos();
+  </script>
+</body>
+</html>
