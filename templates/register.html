@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register – To-Do Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f7f8fa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    nav {
+      padding: 24px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      border-bottom: 1px solid #eee;
+    }
+    .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; color: #1a1a1a; }
+    .brand span { color: #2bae8e; }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .card-title { font-size: 26px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .card-subtitle { font-size: 14px; color: #888; margin-bottom: 36px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fafafa;
+      color: #1a1a1a;
+      margin-bottom: 20px;
+      outline: none;
+      transition: border-color .2s, background .2s;
+    }
+    input:focus { border-color: #2bae8e; background: white; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      background: #2bae8e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s;
+      margin-top: 4px;
+    }
+    .btn:hover { background: #239b7e; }
+
+    .flash {
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .flash.error { background: #fff2f2; border: 1px solid #fcc; color: #c00; }
+    .flash.success { background: #f0fdf9; border: 1px solid #a7f0da; color: #1a7a5e; }
+
+    .card-footer { margin-top: 24px; text-align: center; font-size: 13px; color: #888; }
+    .card-footer a { color: #2bae8e; text-decoration: none; font-weight: 500; }
+    .card-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="brand">todo<span>tracker</span></div>
+  </nav>
+
+  <main>
+    <div class="card">
+      <div class="card-title">Create an account</div>
+      <div class="card-subtitle">Set up your personal to-do tracker</div>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% set msg = messages[0] %}
+          <div class="flash {{ 'success' if 'successful' in msg else 'error' }}">{{ msg }}</div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username" required>
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" required>
+
+        <button class="btn" type="submit">Create account</button>
+      </form>
+
+      <div class="card-footer">
+        Already have an account? <a href="/login">Log in here</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
