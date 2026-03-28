@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f7f8fa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #1a1a1a;
+    }
+
+    nav {
+      background: white;
+      border-bottom: 1px solid #eee;
+      padding: 20px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+    .brand span { color: #2bae8e; }
+
+    .nav-links { display: flex; gap: 12px; align-items: center; }
+    .btn-ghost {
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      color: #555;
+      background: none;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .btn-ghost:hover { border-color: #bbb; color: #1a1a1a; }
+
+    .btn-primary {
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      background: #2bae8e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s;
+    }
+    .btn-primary:hover { background: #239b7e; }
+
+    main { flex: 1; display: flex; flex-direction: column; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 96px 24px 80px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #2bae8e;
+      background: #f0fdf9;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero h1 span { color: #2bae8e; }
+    .hero p {
+      font-size: 17px;
+      color: #777;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-actions .btn-primary { padding: 13px 28px; font-size: 15px; }
+    .hero-actions .btn-ghost   { padding: 13px 28px; font-size: 15px; }
+
+    /* Features */
+    .features {
+      background: white;
+      border-top: 1px solid #eee;
+      padding: 72px 24px;
+    }
+    .features-inner { max-width: 860px; margin: 0 auto; }
+    .features-heading {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #aaa;
+      margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+    }
+    .feature-card {
+      background: #f7f8fa;
+      border-radius: 12px;
+      padding: 28px 24px;
+    }
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      background: #f0fdf9;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+    .feature-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .feature-card p  { font-size: 13px; color: #888; line-height: 1.6; }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: #bbb;
+      border-top: 1px solid #eee;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="brand">todo<span>tracker</span></div>
+    <div class="nav-links">
+      <a href="/login" class="btn-ghost">Log in</a>
+      <a href="/register" class="btn-primary">Get started</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <div class="hero-eyebrow">Simple. Personal. Focused.</div>
+      <h1>Stay on top of<br>your <span>to-dos</span></h1>
+      <p>A lightweight tracker to log tasks, set difficulty levels,<br>and keep your work organized — no clutter, no noise.</p>
+      <div class="hero-actions">
+        <a href="/register" class="btn-primary">Create an account</a>
+        <a href="/login" class="btn-ghost">Log in</a>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="features-inner">
+        <div class="features-heading">Everything you need, nothing you don't</div>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">✓</div>
+            <h3>Track tasks</h3>
+            <p>Log to-dos with a name, difficulty level, and timestamp in seconds.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Filter &amp; sort</h3>
+            <p>Instantly filter by difficulty or sort by date to find what matters most.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3>Secure login</h3>
+            <p>Your account is protected with hashed passwords and signed sessions.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">◎</div>
+            <h3>Mark as done</h3>
+            <p>Check off completed tasks and keep a clean record of your progress.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2026 todotracker
+  </footer>
+</body>
+</html>
