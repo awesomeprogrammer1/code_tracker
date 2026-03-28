@@ -187,7 +187,9 @@
       flex: 1;
       font-size: 15px;
       font-weight: 500;
+      cursor: text;
     }
+    .todo-name:hover { color: #2bae8e; }
 
     .badge {
       font-size: 11px;
@@ -219,6 +221,51 @@
     }
     .btn-sm:hover { background: #f5f5f5; border-color: #ccc; }
     .btn-sm.remove-btn:hover { background: #fff2f2; border-color: #fcc; color: #c00; }
+
+    /* Pinned item indicator */
+    .todo-item.pinned { border-left: 3px solid #2bae8e; }
+
+    /* Pin button */
+    .pin-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      padding: 2px 3px;
+      opacity: 0.25;
+      transition: opacity .15s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .pin-btn:hover { opacity: 0.6; }
+    .pin-btn.active { opacity: 1; filter: sepia(1) saturate(3) hue-rotate(110deg); }
+
+    /* Inline edit input */
+    .edit-input {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 500;
+      font-family: inherit;
+      border: 1.5px solid #2bae8e;
+      border-radius: 6px;
+      padding: 4px 8px;
+      background: white;
+      color: #1a1a1a;
+      outline: none;
+    }
+
+    .hide-resolved-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #888;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .hide-resolved-label input { accent-color: #2bae8e; cursor: pointer; }
+    .hide-resolved-label.hidden { display: none; }
 
     .empty {
       text-align: center;
@@ -266,6 +313,10 @@
         <option value="Medium">Medium</option>
         <option value="Hard">Hard</option>
       </select>
+      <label class="hide-resolved-label" id="hide-resolved-wrap">
+        <input type="checkbox" id="hide-resolved" onchange="render()" checked>
+        Hide resolved
+      </label>
     </div>
 
     <!-- Tabs -->
@@ -299,12 +350,15 @@
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       el.classList.add('active');
       currentTab = el.dataset.tab;
+      // Only show the hide-resolved checkbox on the Recent tab
+      document.getElementById('hide-resolved-wrap').classList.toggle('hidden', currentTab !== 'recent');
       render();
     }
 
     function render() {
       const search = document.getElementById('search').value.trim().toLowerCase();
       const difficulty = document.getElementById('filter').value;
+      const hideResolved = document.getElementById('hide-resolved').checked;
 
       // Apply search + difficulty filter
       let filtered = allTodos.filter(t => {
@@ -324,7 +378,14 @@
       let display;
       if (currentTab === 'active')   display = active;
       else if (currentTab === 'resolved') display = resolved;
-      else display = [...filtered].reverse(); // Recent: newest first
+      else {
+        // Recent: newest first, optionally hiding resolved
+        display = [...filtered].reverse();
+        if (hideResolved) display = display.filter(t => t.status !== 'Done');
+      }
+
+      // Pinned items always float to the top within the current view
+      display.sort((a, b) => (b.pinned === 'Yes') - (a.pinned === 'Yes'));
 
       const diffClass = { Easy: 'badge-easy', Medium: 'badge-medium', Hard: 'badge-hard' };
       const list = document.getElementById('todo-list');
@@ -338,16 +399,22 @@
         return;
       }
 
-      list.innerHTML = display.map(t => `
-        <div class="todo-item ${t.status === 'Done' ? 'done' : ''}" id="item-${t.id}">
+      list.innerHTML = display.map(t =>`
+        <div class="todo-item ${t.status === 'Done' ? 'done' : ''} ${t.pinned === 'Yes' ? 'pinned' : ''}" id="item-${t.id}">
           <input type="checkbox" class="todo-check"
             ${t.status === 'Done' ? 'checked disabled' : ''}
             onchange="markDone(${t.id})">
-          <div class="todo-name">${escapeHtml(t.name)}</div>
+          <button class="pin-btn ${t.pinned === 'Yes' ? 'active' : ''}" onclick="pinTodo(${t.id})" title="Pin to top">📌</button>
+          <div class="todo-name" data-id="${t.id}" data-name="${escapeHtml(t.name)}" title="Click to edit">${escapeHtml(t.name)}</div>
           <span class="badge ${diffClass[t.difficulty] || ''}">${t.difficulty}</span>
           <div class="todo-date">${t.date.slice(0, 10)}</div>
           <button class="btn-sm remove-btn" onclick="removeTodo(${t.id})">Remove</button>
         </div>`).join('');
+
+      // Attach edit listeners after innerHTML is set — avoids quote-escaping issues
+      list.querySelectorAll('.todo-name').forEach(el => {
+        el.addEventListener('click', () => startEdit(parseInt(el.dataset.id), el.dataset.name));
+      });
     }
 
     async function addTodo() {
@@ -373,8 +440,50 @@
     }
 
     async function removeTodo(id) {
+      if (!confirm('Remove this to-do? This cannot be undone.')) return;
       await fetch(`/todos/${id}`, { method: 'DELETE' });
       await loadTodos();
+    }
+
+    async function pinTodo(id) {
+      await fetch(`/todos/${id}/pin`, { method: 'PATCH' });
+      await loadTodos();
+    }
+
+    function startEdit(id, currentName) {
+      const item = document.getElementById(`item-${id}`);
+      if (!item) return;
+      const nameEl = item.querySelector('.todo-name');
+      if (!nameEl) return;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'edit-input';
+      input.value = currentName;
+      nameEl.replaceWith(input);
+      input.focus();
+      input.select();
+
+      let saved = false;
+      async function save() {
+        if (saved) return;
+        saved = true;
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+          await fetch(`/todos/${id}/rename`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName })
+          });
+        }
+        await loadTodos();
+      }
+
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter')  save();
+        if (e.key === 'Escape') { saved = true; loadTodos(); }
+      });
+      input.addEventListener('blur', save);
     }
 
     function escapeHtml(str) {

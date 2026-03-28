@@ -121,8 +121,10 @@ def get_todos():
 
     # Convert each CSV row into a dict and attach a numeric id so the
     # front-end can reference individual todos in PATCH/DELETE requests.
+    # pinned is column 4; default to "No" for older rows that predate the column.
     return jsonify([
-        {"id": i, "name": t[0], "difficulty": t[1], "date": t[2], "status": t[3]}
+        {"id": i, "name": t[0], "difficulty": t[1], "date": t[2], "status": t[3],
+         "pinned": t[4] if len(t) > 4 else "No"}
         for i, t in enumerate(todos)
     ])
 
@@ -145,7 +147,7 @@ def add_todo():
     # Append a single new row to the CSV. Using "a" (append) mode means
     # existing todos are never overwritten.
     with open(LOG_FILE, "a", newline="") as f:
-        csv.writer(f).writerow([name, difficulty, log_date, "Pending"])
+        csv.writer(f).writerow([name, difficulty, log_date, "Pending", "No"])
 
     # 201 Created is the conventional HTTP status for a successful POST.
     return jsonify({"message": "To-do added successfully"}), 201
@@ -167,6 +169,41 @@ def mark_done(todo_id):
     with open(LOG_FILE, "w", newline="") as f:
         csv.writer(f).writerows(todos)
     return jsonify({"message": "To-do marked as done"})
+
+
+@app.route("/todos/<int:todo_id>/pin", methods=["PATCH"])
+def pin_todo(todo_id):
+    if not session.get("logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+    with open(LOG_FILE, "r") as f:
+        todos = [row for row in csv.reader(f) if row]
+    if todo_id < 0 or todo_id >= len(todos):
+        return jsonify({"error": "Invalid ID"}), 404
+    # Pad row to 5 columns if it predates the pinned column
+    while len(todos[todo_id]) < 5:
+        todos[todo_id].append("No")
+    todos[todo_id][4] = "No" if todos[todo_id][4] == "Yes" else "Yes"
+    with open(LOG_FILE, "w", newline="") as f:
+        csv.writer(f).writerows(todos)
+    return jsonify({"pinned": todos[todo_id][4]})
+
+
+@app.route("/todos/<int:todo_id>/rename", methods=["PATCH"])
+def rename_todo(todo_id):
+    if not session.get("logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json()
+    new_name = data.get("name", "").strip()
+    if not new_name:
+        return jsonify({"error": "Invalid name"}), 400
+    with open(LOG_FILE, "r") as f:
+        todos = [row for row in csv.reader(f) if row]
+    if todo_id < 0 or todo_id >= len(todos):
+        return jsonify({"error": "Invalid ID"}), 404
+    todos[todo_id][0] = new_name
+    with open(LOG_FILE, "w", newline="") as f:
+        csv.writer(f).writerows(todos)
+    return jsonify({"message": "To-do renamed"})
 
 
 @app.route("/todos/<int:todo_id>", methods=["DELETE"])
