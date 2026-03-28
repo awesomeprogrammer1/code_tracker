@@ -124,7 +124,8 @@ def get_todos():
     # pinned is column 4; default to "No" for older rows that predate the column.
     return jsonify([
         {"id": i, "name": t[0], "difficulty": t[1], "date": t[2], "status": t[3],
-         "pinned": t[4] if len(t) > 4 else "No"}
+         "pinned": t[4] if len(t) > 4 else "No",
+         "tags":   t[5] if len(t) > 5 else ""}
         for i, t in enumerate(todos)
     ])
 
@@ -137,6 +138,7 @@ def add_todo():
     data = request.get_json()
     name = data.get("name", "").strip()
     difficulty = data.get("difficulty", "").strip()
+    tags = data.get("tags", "").strip()
 
     # Reject the request early if required fields are missing or invalid.
     if not name or difficulty not in ("Easy", "Medium", "Hard"):
@@ -144,10 +146,8 @@ def add_todo():
 
     log_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Append a single new row to the CSV. Using "a" (append) mode means
-    # existing todos are never overwritten.
     with open(LOG_FILE, "a", newline="") as f:
-        csv.writer(f).writerow([name, difficulty, log_date, "Pending", "No"])
+        csv.writer(f).writerow([name, difficulty, log_date, "Pending", "No", tags])
 
     # 201 Created is the conventional HTTP status for a successful POST.
     return jsonify({"message": "To-do added successfully"}), 201
