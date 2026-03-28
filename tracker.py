@@ -30,6 +30,8 @@ LOG_FILE = os.path.join(os.path.dirname(__file__), "todos.csv")
 
 @app.route('/')
 def homepage():
+    if session.get("logged_in"):
+        return redirect(url_for("home"))
     return render_template('homepage.html')
 
 
