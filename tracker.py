@@ -1,9 +1,9 @@
 import csv
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 load_dotenv()
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for, flash
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, flash, Response
 from werkzeug.security import check_password_hash, generate_password_hash
 import sqlite3
 
@@ -125,7 +125,8 @@ def get_todos():
     return jsonify([
         {"id": i, "name": t[0], "difficulty": t[1], "date": t[2], "status": t[3],
          "pinned": t[4] if len(t) > 4 else "No",
-         "tags":   t[5] if len(t) > 5 else ""}
+         "tags":   t[5] if len(t) > 5 else "",
+         "due":    t[6] if len(t) > 6 else ""}
         for i, t in enumerate(todos)
     ])
 
@@ -139,6 +140,7 @@ def add_todo():
     name = data.get("name", "").strip()
     difficulty = data.get("difficulty", "").strip()
     tags = data.get("tags", "").strip()
+    due  = data.get("due",  "").strip()
 
     # Reject the request early if required fields are missing or invalid.
     if not name or difficulty not in ("Easy", "Medium", "Hard"):
@@ -147,7 +149,7 @@ def add_todo():
     log_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     with open(LOG_FILE, "a", newline="") as f:
-        csv.writer(f).writerow([name, difficulty, log_date, "Pending", "No", tags])
+        csv.writer(f).writerow([name, difficulty, log_date, "Pending", "No", tags, due])
 
     # 201 Created is the conventional HTTP status for a successful POST.
     return jsonify({"message": "To-do added successfully"}), 201
@@ -222,6 +224,58 @@ def remove_todo(todo_id):
     with open(LOG_FILE, "w", newline="") as f:
         csv.writer(f).writerows(todos)
     return jsonify({"message": "To-do removed successfully"})
+
+
+def ics_escape(text):
+    return str(text).replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+@app.route("/todos/export.ics")
+def export_ics():
+    if not session.get("logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    with open(LOG_FILE, "r") as f:
+        todos = [row for row in csv.reader(f) if row]
+
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//TodoTracker//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+    ]
+
+    for i, t in enumerate(todos):
+        due = t[6].strip() if len(t) > 6 else ""
+        if not due:
+            continue
+        try:
+            dt_start = datetime.strptime(due, "%Y-%m-%dT%H:%M")
+            dt_end   = dt_start + timedelta(hours=1)
+            dtstart  = dt_start.strftime("%Y%m%dT%H%M%S")
+            dtend    = dt_end.strftime("%Y%m%dT%H%M%S")
+        except ValueError:
+            continue
+
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:todo-{i}@todotracker",
+            f"SUMMARY:{ics_escape(t[0])}",
+            f"DTSTART:{dtstart}",
+            f"DTEND:{dtend}",
+            f"DESCRIPTION:Difficulty: {ics_escape(t[1])}\\nStatus: {ics_escape(t[3])}",
+            "END:VEVENT",
+        ]
+
+    lines.append("END:VCALENDAR")
+    content = "\r\n".join(lines) + "\r\n"
+
+    return Response(
+        content,
+        mimetype="text/calendar",
+        headers={"Content-Disposition": "attachment; filename=todos.ics"}
+    )
 
 
 # Only start the development server when this file is run directly

@@ -238,6 +238,47 @@
 
     .todo-date { font-size: 12px; color: var(--faint); white-space: nowrap; }
 
+    /* Due date urgency */
+    .due-label { font-size: 12px; white-space: nowrap; font-weight: 500; }
+    .due-overdue  { color: #c0392b; }
+    .due-today    { color: #d97706; }
+    .due-soon     { color: #ca8a04; }
+    .due-future   { color: var(--muted); }
+    body.dark .due-overdue { color: #f87171; }
+    body.dark .due-today   { color: #fbbf24; }
+    body.dark .due-soon    { color: #fde047; }
+
+    /* datetime-local input matches other inputs */
+    input[type="datetime-local"] {
+      padding: 11px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid var(--border-input);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s, background .2s;
+      color-scheme: light dark;
+    }
+    input[type="datetime-local"]:focus { border-color: var(--accent); background: var(--surface); }
+
+    .btn-export {
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      border: 1.5px solid var(--border-input);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all .15s;
+      cursor: pointer;
+    }
+    .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
     .btn-sm {
       padding: 5px 12px;
       font-size: 12px;
@@ -312,8 +353,9 @@
         <button class="btn-primary" onclick="addTodo()">Add</button>
       </div>
       <div class="add-tags-row">
-        <input id="tags" type="text" placeholder="Tags (e.g. work, school)" style="max-width:320px;">
-        <span class="tags-hint">Comma-separated, optional</span>
+        <input id="due" type="datetime-local">
+        <input id="tags" type="text" placeholder="Tags (e.g. work, school)" style="max-width:260px;">
+        <span class="tags-hint">Optional</span>
       </div>
     </div>
 
@@ -332,6 +374,7 @@
         <input type="checkbox" id="hide-resolved" onchange="render()" checked>
         Hide resolved
       </label>
+      <a href="/todos/export.ics" class="btn-export" title="Download all to-dos with due dates as a calendar file">⬇ Export .ics</a>
     </div>
 
     <div class="tabs">
@@ -477,6 +520,7 @@
               ${tagsHtml}
             </div>
             <span class="badge ${diffClass[t.difficulty] || ''}">${t.difficulty}</span>
+            ${t.due ? `<span class="due-label ${dueClass(t.due)}" title="Due ${formatDue(t.due)}">⏰ ${formatDue(t.due)}</span>` : ''}
             <div class="todo-date">${t.date.slice(0, 10)}</div>
             <button class="btn-sm remove-btn" onclick="removeTodo(${t.id})">Remove</button>
           </div>`;
@@ -498,14 +542,16 @@
       const name       = document.getElementById('name').value.trim();
       const difficulty = document.getElementById('difficulty').value;
       const tags       = document.getElementById('tags').value.trim();
+      const due        = document.getElementById('due').value;
       if (!name) return;
       await fetch('/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, difficulty, tags })
+        body: JSON.stringify({ name, difficulty, tags, due })
       });
       document.getElementById('name').value = '';
       document.getElementById('tags').value = '';
+      document.getElementById('due').value  = '';
       await loadTodos();
     }
 
@@ -563,6 +609,23 @@
         if (e.key === 'Escape') { saved = true; loadTodos(); }
       });
       input.addEventListener('blur', save);
+    }
+
+    function formatDue(due) {
+      if (!due) return '';
+      const dt = new Date(due);
+      const date = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return `${date} ${time}`;
+    }
+
+    function dueClass(due) {
+      if (!due) return 'due-future';
+      const diff = new Date(due) - Date.now();
+      if (diff < 0)          return 'due-overdue';
+      if (diff < 3600000*8)  return 'due-today';   // within 8 h
+      if (diff < 86400000*3) return 'due-soon';    // within 3 days
+      return 'due-future';
     }
 
     function escapeHtml(str) {
